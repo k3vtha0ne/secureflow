@@ -3,6 +3,11 @@
 namespace App\Entity;
 
 use App\Repository\CampaignRepository;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -14,6 +19,23 @@ use Doctrine\ORM\Mapping as ORM;
     new ORM\Index(name: 'idx_campaign_created_by_created', columns: ['created_by_id', 'created_at']),
     new ORM\Index(name: 'idx_campaign_status_scheduled', columns: ['status', 'scheduled_at']),
 ])]
+/**
+ * API read model for document distribution campaigns.
+ *
+ * Write operations are intentionally not exposed yet: campaign creation must
+ * validate ownership, organization scope and document access server-side.
+ *
+ * Access control will be enforced once API authentication is configured.
+ */
+#[ApiResource(
+    operations: [
+        new Get(),
+        new GetCollection(),
+    ],
+    normalizationContext: ['groups' => ['campaign:read']],
+    paginationItemsPerPage: 20,
+    order: ['createdAt' => 'DESC']
+)]
 class Campaign
 {
     public const STATUS_DRAFT = 'draft';
@@ -22,20 +44,37 @@ class Campaign
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';
 
+    #[Groups(['campaign:read'])]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Groups(['campaign:read'])]
+    #[Assert\NotBlank(message: 'Campaign name is required.')]
+    #[Assert\Length(max: 180)]
     #[ORM\Column(length: 180)]
     private ?string $name = null;
 
+    #[Groups(['campaign:read'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+    #[Groups(['campaign:read'])]
+    #[Assert\Choice(
+        choices: [
+            self::STATUS_DRAFT,
+            self::STATUS_SCHEDULED,
+            self::STATUS_RUNNING,
+            self::STATUS_COMPLETED,
+            self::STATUS_CANCELLED,
+        ],
+        message: 'Invalid campaign status.'
+    )]
     #[ORM\Column(length: 30)]
     private ?string $status = null;
 
+    #[Groups(['campaign:read'])]
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $scheduledAt = null;
 
@@ -53,9 +92,11 @@ class Campaign
     #[ORM\ManyToMany(targetEntity: Document::class, inversedBy: 'campaigns')]
     private Collection $documents;
 
+    #[Groups(['campaign:read'])]
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
+    #[Groups(['campaign:read'])]
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
