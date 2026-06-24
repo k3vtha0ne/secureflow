@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\DocumentRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -47,12 +49,19 @@ class Document
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    /**
+     * @var Collection<int, Campaign>
+     */
+    #[ORM\ManyToMany(targetEntity: Campaign::class, mappedBy: 'documents')]
+    private Collection $campaigns;
+
     public function __construct()
     {
         # Initialisation : éviter de devoir penser à status, isDeleted et createdAt à chaque création de document.
         $this->status = self::STATUS_DRAFT;
         $this->isDeleted = false;
         $this->createdAt = new \DateTimeImmutable();
+        $this->campaigns = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -164,6 +173,33 @@ class Document
     public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Campaign>
+     */
+    public function getCampaigns(): Collection
+    {
+        return $this->campaigns;
+    }
+
+    public function addCampaign(Campaign $campaign): static
+    {
+        if (!$this->campaigns->contains($campaign)) {
+            $this->campaigns->add($campaign);
+            $campaign->addDocument($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCampaign(Campaign $campaign): static
+    {
+        if ($this->campaigns->removeElement($campaign)) {
+            $campaign->removeDocument($this);
+        }
 
         return $this;
     }

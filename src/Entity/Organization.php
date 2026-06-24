@@ -36,10 +36,17 @@ class Organization
     #[ORM\OneToMany(targetEntity: Document::class, mappedBy: 'organization')]
     private Collection $documents;
 
+    /**
+     * @var Collection<int, Campaign>
+     */
+    #[ORM\OneToMany(targetEntity: Campaign::class, mappedBy: 'organization')]
+    private Collection $campaigns;
+
     public function __construct()
     {
         $this->users = new ArrayCollection();
         $this->documents = new ArrayCollection();
+        $this->campaigns = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -137,6 +144,36 @@ class Organization
             // set the owning side to null (unless already changed)
             if ($document->getOrganization() === $this) {
                 $document->setOrganization(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Campaign>
+     */
+    public function getCampaigns(): Collection
+    {
+        return $this->campaigns;
+    }
+
+    public function addCampaign(Campaign $campaign): static
+    {
+        if (!$this->campaigns->contains($campaign)) {
+            $this->campaigns->add($campaign);
+            $campaign->setOrganization($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCampaign(Campaign $campaign): static
+    {
+        if ($this->campaigns->removeElement($campaign)) {
+            // set the owning side to null (unless already changed)
+            if ($campaign->getOrganization() === $this) {
+                $campaign->setOrganization(null);
             }
         }
 

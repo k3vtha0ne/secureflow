@@ -55,9 +55,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Document::class, mappedBy: 'owner')]
     private Collection $documents;
 
+    /**
+     * @var Collection<int, Campaign>
+     */
+    #[ORM\OneToMany(targetEntity: Campaign::class, mappedBy: 'createdBy')]
+    private Collection $createdCampaigns;
+
     public function __construct()
     {
         $this->documents = new ArrayCollection();
+        $this->createdCampaigns = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -219,6 +226,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($document->getOwner() === $this) {
                 $document->setOwner(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Campaign>
+     */
+    public function getCreatedCampaigns(): Collection
+    {
+        return $this->createdCampaigns;
+    }
+
+    public function addCreatedCampaign(Campaign $createdCampaign): static
+    {
+        if (!$this->createdCampaigns->contains($createdCampaign)) {
+            $this->createdCampaigns->add($createdCampaign);
+            $createdCampaign->setCreatedBy($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCreatedCampaign(Campaign $createdCampaign): static
+    {
+        if ($this->createdCampaigns->removeElement($createdCampaign)) {
+            // set the owning side to null (unless already changed)
+            if ($createdCampaign->getCreatedBy() === $this) {
+                $createdCampaign->setCreatedBy(null);
             }
         }
 
