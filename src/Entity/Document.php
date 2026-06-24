@@ -6,6 +6,10 @@ use App\Repository\DocumentRepository;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Doctrine\Orm\Filter\ExactFilter;
+use ApiPlatform\Doctrine\Orm\Filter\PartialSearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SortFilter;
+use ApiPlatform\Metadata\QueryParameter;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -30,7 +34,35 @@ use Doctrine\ORM\Mapping as ORM;
 #[ApiResource(
     operations: [
         new Get(),
-        new GetCollection(),
+        new GetCollection(
+            parameters: [
+                // Allows partial text search on non-sensitive document fields.
+                'search[:property]' => new QueryParameter(
+                    properties: ['title', 'description'],
+                    filter: new PartialSearchFilter()
+                ),
+
+                // Allows exact filtering by public document lifecycle status.
+                'status' => new QueryParameter(
+                    property: 'status',
+                    filter: new ExactFilter()
+                ),
+
+                // Allows explicit sorting without exposing arbitrary internal fields.
+                'sortCreatedAt' => new QueryParameter(
+                    property: 'createdAt',
+                    filter: new SortFilter()
+                ),
+                'sortTitle' => new QueryParameter(
+                    property: 'title',
+                    filter: new SortFilter()
+                ),
+                'sortStatus' => new QueryParameter(
+                    property: 'status',
+                    filter: new SortFilter()
+                ),
+            ]
+        ),
     ],
     normalizationContext: ['groups' => ['document:read']],
     paginationItemsPerPage: 20,
