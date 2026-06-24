@@ -15,6 +15,7 @@ composer require profiler --dev
 composer require symfony/test-pack --dev
 composer require lexik/jwt-authentication-bundle
 composer require --dev orm-fixtures
+composer require lexik/jwt-authentication-bundle (+php bin/console lexik:jwt:generate-keypair)
 
 ## Créer le Docker Compose
 touch docker-compose.yml
