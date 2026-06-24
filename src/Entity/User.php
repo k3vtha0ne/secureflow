@@ -65,6 +65,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->documents = new ArrayCollection();
         $this->createdCampaigns = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int

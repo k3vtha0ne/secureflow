@@ -47,6 +47,7 @@ class Organization
         $this->users = new ArrayCollection();
         $this->documents = new ArrayCollection();
         $this->campaigns = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int

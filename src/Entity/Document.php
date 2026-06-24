@@ -43,7 +43,7 @@ class Document
     #[ORM\Column]
     private ?bool $isDeleted = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(nullable: true)]
@@ -57,7 +57,6 @@ class Document
 
     public function __construct()
     {
-        # Initialisation : éviter de devoir penser à status, isDeleted et createdAt à chaque création de document.
         $this->status = self::STATUS_DRAFT;
         $this->isDeleted = false;
         $this->createdAt = new \DateTimeImmutable();
@@ -158,7 +157,7 @@ class Document
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
 
