@@ -29,14 +29,19 @@ nc -vz 127.0.0.1 3307
 
 ## Configurer .env.local
 touch .env.local
+git status --ignored | grep .env.local <!-- Vérifier que le fichier est ignoré par GIT -->
 
 ## Créer la base de données
 php bin/console doctrine:database:create --if-not-exists
 php bin/console doctrine:migrations:status
 
-## xxx
+## Créer un controller de santé pour tester le endpoint
+php bin/console make:controller HealthController
+symfony serve -d --port=8001
+symfony server:list
+curl http://127.0.0.1:8001/api/health
 
-## xxx
+## Commandes Symfony
 
 ## xxx
 
