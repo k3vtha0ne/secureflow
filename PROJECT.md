@@ -35,6 +35,11 @@ git status --ignored | grep .env.local <!-- Vérifier que le fichier est ignoré
 php bin/console doctrine:database:create --if-not-exists
 php bin/console doctrine:migrations:status
 
+# Si besoin de la recréer suite à une souci de migrations:
+php bin/console doctrine:database:drop --force --if-exists
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate --no-interaction
+
 ## Créer un controller de santé pour tester le endpoint
 php bin/console make:controller HealthController
 symfony serve -d --port=8001
