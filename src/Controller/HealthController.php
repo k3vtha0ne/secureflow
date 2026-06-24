@@ -10,8 +10,10 @@ final class HealthController
     #[Route('/api/health', name: 'api_health', methods: ['GET'])]
     public function __invoke(): JsonResponse
     {
+        # On utilise_invoke quand un controller ne contient qu’une seule responsabilité / action
+        # $controller = new HealthController(); contient directement la méthode __invoke() et peut être appelé comme une fonction
         return new JsonResponse([
-            'status' => 'ok',
+            'status' => 'Ok',
             'application' => 'SecureFlow',
             'environment' => $_ENV['APP_ENV'] ?? 'unknown',
         ]);
