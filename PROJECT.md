@@ -14,6 +14,7 @@ composer require maker --dev
 composer require profiler --dev
 composer require symfony/test-pack --dev
 composer require lexik/jwt-authentication-bundle
+composer require --dev orm-fixtures
 
 ## Créer le Docker Compose
 touch docker-compose.yml
@@ -62,4 +63,7 @@ Détecte des erreurs comme :
 
 Combo: php bin/console doctrine:schema:validate && php bin/console lint:container
 
-## xxx
+Si le lint:container passe mais qu'il reste des erreurs intelephense: CMD + Shift + P => Intelephense: Index workspace
+
+## Faire une requête en ligne de commande:
+php bin/console dbal:run-sql "SELECT COUNT(*) AS total FROM organization"
