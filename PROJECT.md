@@ -48,6 +48,18 @@ curl http://127.0.0.1:8001/api/health
 
 ## Commandes Symfony
 
-## xxx
+## Check Symfony
+php bin/console lint:container vérifie que le container de services Symfony est cohérent.
+
+Détecte des erreurs comme :
+
+- service mal configuré
+- dépendance impossible à injecter
+- classe introuvable
+- argument de constructeur manquant
+- autowiring impossible
+- erreur dans la configuration services.yaml
+
+Combo: php bin/console doctrine:schema:validate && php bin/console lint:container
 
 ## xxx
