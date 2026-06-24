@@ -1,0 +1,29 @@
+services:
+  database:
+    image: mariadb:11
+    container_name: secureflow_database
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: secureflow
+      MYSQL_USER: secureflow
+      MYSQL_PASSWORD: secureflow
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - secureflow_db_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: secureflow_phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - database
+    environment:
+      PMA_HOST: database
+      PMA_PORT: 3306
+    ports:
+      - "8081:80"
+
+volumes:
+  secureflow_db_data:
