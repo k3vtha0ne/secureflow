@@ -3,6 +3,15 @@
 namespace App\Entity;
 
 use App\Repository\DocumentRepository;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Doctrine\Orm\Filter\ExactFilter;
+use ApiPlatform\Doctrine\Orm\Filter\PartialSearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SortFilter;
+use ApiPlatform\Metadata\QueryParameter;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -14,23 +23,82 @@ use Doctrine\ORM\Mapping as ORM;
     new ORM\Index(name: 'idx_document_owner_deleted_created', columns: ['owner_id', 'is_deleted', 'created_at']),
     new ORM\Index(name: 'idx_document_status', columns: ['status']),
 ])]
+/**
+ * API read model for secured documents.
+ *
+ * Write operations are intentionally not exposed yet: document creation must
+ * assign the owner and organization server-side to avoid trusting client input.
+ *
+ * Access control will be enforced once API authentication is configured.
+ */
+#[ApiResource(
+    operations: [
+        new Get(),
+        new GetCollection(
+            parameters: [
+                // Allows partial text search on non-sensitive document fields.
+                'search[:property]' => new QueryParameter(
+                    properties: ['title', 'description'],
+                    filter: new PartialSearchFilter()
+                ),
+
+                // Allows exact filtering by public document lifecycle status.
+                'status' => new QueryParameter(
+                    property: 'status',
+                    filter: new ExactFilter()
+                ),
+
+                // Allows explicit sorting without exposing arbitrary internal fields.
+                'sortCreatedAt' => new QueryParameter(
+                    property: 'createdAt',
+                    filter: new SortFilter()
+                ),
+                'sortTitle' => new QueryParameter(
+                    property: 'title',
+                    filter: new SortFilter()
+                ),
+                'sortStatus' => new QueryParameter(
+                    property: 'status',
+                    filter: new SortFilter()
+                ),
+            ]
+        ),
+    ],
+    normalizationContext: ['groups' => ['document:read']],
+    paginationItemsPerPage: 20,
+    order: ['createdAt' => 'DESC']
+)]
 class Document
 {
     public const STATUS_DRAFT = 'draft';
     public const STATUS_PUBLISHED = 'published';
     public const STATUS_ARCHIVED = 'archived';
 
+    #[Groups(['document:read'])]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Groups(['document:read'])]
+    #[Assert\NotBlank(message: 'Document title is required.')]
+    #[Assert\Length(max: 180)]
     #[ORM\Column(length: 180)]
     private ?string $title = null;
 
+    #[Groups(['document:read'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+    #[Groups(['document:read'])]
+    #[Assert\Choice(
+        choices: [
+            self::STATUS_DRAFT,
+            self::STATUS_PUBLISHED,
+            self::STATUS_ARCHIVED,
+        ],
+        message: 'Invalid document status.'
+    )]
     #[ORM\Column(length: 30)]
     private ?string $status = null;
 
@@ -48,9 +116,11 @@ class Document
     #[ORM\Column]
     private ?bool $isDeleted = null;
 
+    #[Groups(['document:read'])]
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
+    #[Groups(['document:read'])]
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
