@@ -6,6 +6,10 @@ use App\Repository\CampaignRepository;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Doctrine\Orm\Filter\ExactFilter;
+use ApiPlatform\Doctrine\Orm\Filter\PartialSearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SortFilter;
+use ApiPlatform\Metadata\QueryParameter;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -30,7 +34,39 @@ use Doctrine\ORM\Mapping as ORM;
 #[ApiResource(
     operations: [
         new Get(),
-        new GetCollection(),
+        new GetCollection(
+            parameters: [
+                // Allows partial text search on non-sensitive campaign fields.
+                'search[:property]' => new QueryParameter(
+                    properties: ['name', 'description'],
+                    filter: new PartialSearchFilter()
+                ),
+
+                // Allows exact filtering by public campaign lifecycle status.
+                'status' => new QueryParameter(
+                    property: 'status',
+                    filter: new ExactFilter()
+                ),
+
+                // Allows explicit sorting without exposing arbitrary internal fields.
+                'sortCreatedAt' => new QueryParameter(
+                    property: 'createdAt',
+                    filter: new SortFilter()
+                ),
+                'sortScheduledAt' => new QueryParameter(
+                    property: 'scheduledAt',
+                    filter: new SortFilter()
+                ),
+                'sortName' => new QueryParameter(
+                    property: 'name',
+                    filter: new SortFilter()
+                ),
+                'sortStatus' => new QueryParameter(
+                    property: 'status',
+                    filter: new SortFilter()
+                ),
+            ]
+        ),
     ],
     normalizationContext: ['groups' => ['campaign:read']],
     paginationItemsPerPage: 20,
