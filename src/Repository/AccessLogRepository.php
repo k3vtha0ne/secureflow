@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\AccessLog;
+use App\Entity\Document;
+use App\Entity\Organization;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -16,28 +18,81 @@ class AccessLogRepository extends ServiceEntityRepository
         parent::__construct($registry, AccessLog::class);
     }
 
-    //    /**
-    //     * @return AccessLog[] Returns an array of AccessLog objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('a')
-    //            ->andWhere('a.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('a.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Retourne les derniers logs d'accès d'une organisation.
+     */
+    public function findRecentByOrganization(
+        Organization $organization,
+        int $limit = 50
+    ): array {
+        return $this->createQueryBuilder('al')
+            ->andWhere('al.organization = :organization')
+            ->setParameter('organization', $organization)
+            ->orderBy('al.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 
-    //    public function findOneBySomeField($value): ?AccessLog
-    //    {
-    //        return $this->createQueryBuilder('a')
-    //            ->andWhere('a.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    /**
+     * Retourne les derniers logs liés à un document.
+     */
+    public function findRecentByDocument(
+        Document $document,
+        int $limit = 50
+    ): array {
+        return $this->createQueryBuilder('al')
+            ->andWhere('al.document = :document')
+            ->setParameter('document', $document)
+            ->orderBy('al.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Compte les accès par document pour une organisation.
+     *
+     * Retourne un tableau de lignes :
+     * [
+     *     ['documentId' => 1, 'documentTitle' => '...', 'accessCount' => 12],
+     * ]
+     */
+    public function countAccessesByDocumentForOrganization(Organization $organization): array
+    {
+        return $this->createQueryBuilder('al')
+            ->select('d.id AS documentId')
+            ->addSelect('d.title AS documentTitle')
+            ->addSelect('COUNT(al.id) AS accessCount')
+            ->join('al.document', 'd')
+            ->andWhere('al.organization = :organization')
+            ->setParameter('organization', $organization)
+            ->groupBy('d.id')
+            ->addGroupBy('d.title')
+            ->orderBy('accessCount', 'DESC')
+            ->getQuery()
+            ->getArrayResult();
+    }
+
+    /**
+     * Compte les logs par type d'action pour une organisation.
+     *
+     * Exemple :
+     * [
+     *     ['action' => 'view', 'total' => 42],
+     *     ['action' => 'download', 'total' => 8],
+     * ]
+     */
+    public function countActionsByOrganization(Organization $organization): array
+    {
+        return $this->createQueryBuilder('al')
+            ->select('al.action AS action')
+            ->addSelect('COUNT(al.id) AS total')
+            ->andWhere('al.organization = :organization')
+            ->setParameter('organization', $organization)
+            ->groupBy('al.action')
+            ->orderBy('total', 'DESC')
+            ->getQuery()
+            ->getArrayResult();
+    }
 }

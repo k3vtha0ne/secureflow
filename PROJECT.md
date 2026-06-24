@@ -14,6 +14,7 @@ composer require maker --dev
 composer require profiler --dev
 composer require symfony/test-pack --dev
 composer require lexik/jwt-authentication-bundle
+composer require --dev orm-fixtures
 
 ## Créer le Docker Compose
 touch docker-compose.yml
@@ -48,6 +49,24 @@ curl http://127.0.0.1:8001/api/health
 
 ## Commandes Symfony
 
-## xxx
+## Check Symfony
+php bin/console lint:container vérifie que le container de services Symfony est cohérent.
 
-## xxx
+Détecte des erreurs comme :
+
+- service mal configuré
+- dépendance impossible à injecter
+- classe introuvable
+- argument de constructeur manquant
+- autowiring impossible
+- erreur dans la configuration services.yaml
+
+Combo: php bin/console doctrine:schema:validate && php bin/console lint:container
+
+Si le lint:container passe mais qu'il reste des erreurs intelephense: CMD + Shift + P => Intelephense: Index workspace
+
+## Faire une requête en ligne de commande:
+php bin/console dbal:run-sql "SELECT COUNT(*) AS total FROM organization"
+
+## Créer une commande
+php bin/console make:command DomainOverviewCommand

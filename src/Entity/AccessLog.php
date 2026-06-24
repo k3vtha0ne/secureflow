@@ -7,6 +7,11 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AccessLogRepository::class)]
+#[ORM\Table(indexes: [
+    new ORM\Index(name: 'idx_access_log_organization_created', columns: ['organization_id', 'created_at']),
+    new ORM\Index(name: 'idx_access_log_document_created', columns: ['document_id', 'created_at']),
+    new ORM\Index(name: 'idx_access_log_organization_action', columns: ['organization_id', 'action']),
+])]
 class AccessLog
 {
 

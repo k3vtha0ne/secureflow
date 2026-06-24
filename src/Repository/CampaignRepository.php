@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\Campaign;
+use App\Entity\Organization;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -16,28 +18,77 @@ class CampaignRepository extends ServiceEntityRepository
         parent::__construct($registry, Campaign::class);
     }
 
-    //    /**
-    //     * @return Campaign[] Returns an array of Campaign objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('c.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Retourne les campagnes d'une organisation, avec pagination.
+     */
+    public function findByOrganization(
+        Organization $organization,
+        int $limit = 20,
+        int $offset = 0
+    ): array {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.organization = :organization')
+            ->setParameter('organization', $organization)
+            ->orderBy('c.createdAt', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 
-    //    public function findOneBySomeField($value): ?Campaign
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    /**
+     * Retourne les campagnes créées par un utilisateur.
+     */
+    public function findCreatedByUser(
+        User $user,
+        int $limit = 20,
+        int $offset = 0
+    ): array {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.createdBy = :user')
+            ->setParameter('user', $user)
+            ->orderBy('c.createdAt', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Retourne les campagnes planifiées qui doivent être exécutées.
+     */
+    public function findScheduledToRun(\DateTimeImmutable $now): array
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.scheduledAt IS NOT NULL')
+            ->andWhere('c.scheduledAt <= :now')
+            ->setParameter('status', Campaign::STATUS_SCHEDULED)
+            ->setParameter('now', $now)
+            ->orderBy('c.scheduledAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Compte les campagnes par statut pour une organisation.
+     *
+     * Exemple :
+     * [
+     *     ['status' => 'draft', 'total' => 4],
+     *     ['status' => 'scheduled', 'total' => 2],
+     * ]
+     */
+    public function countByStatusForOrganization(Organization $organization): array
+    {
+        return $this->createQueryBuilder('c')
+            ->select('c.status AS status')
+            ->addSelect('COUNT(c.id) AS total')
+            ->andWhere('c.organization = :organization')
+            ->setParameter('organization', $organization)
+            ->groupBy('c.status')
+            ->orderBy('total', 'DESC')
+            ->getQuery()
+            ->getArrayResult();
+    }
 }
