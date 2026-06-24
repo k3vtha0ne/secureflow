@@ -67,3 +67,6 @@ Si le lint:container passe mais qu'il reste des erreurs intelephense: CMD + Shif
 
 ## Faire une requête en ligne de commande:
 php bin/console dbal:run-sql "SELECT COUNT(*) AS total FROM organization"
+
+## Créer une commande
+php bin/console make:command DomainOverviewCommand
