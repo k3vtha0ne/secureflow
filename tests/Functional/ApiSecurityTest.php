@@ -532,4 +532,152 @@ final class ApiSecurityTest extends WebTestCase
 
     
 
+
+    public function testInvalidJwtLoginIsRejected(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = $container->get(EntityManagerInterface::class);
+
+        /** @var UserPasswordHasherInterface $passwordHasher */
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = new Organization();
+        $organization->setName(sprintf('Invalid Login Organization %s', $uniqueSuffix));
+        $entityManager->persist($organization);
+
+        $user = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $organization,
+            sprintf('invalid-login-%s@example.test', $uniqueSuffix),
+            ['ROLE_USER']
+        );
+
+        $entityManager->flush();
+
+        $client->request(
+            'POST',
+            '/api/login_check',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode([
+                'email' => $user->getUserIdentifier(),
+                'password' => 'wrong-password',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testDocumentsCollectionRejectsInvalidJwtToken(): void
+    {
+        $client = static::createClient();
+
+        $client->request(
+            'GET',
+            '/api/documents',
+            server: [
+                'HTTP_AUTHORIZATION' => 'Bearer invalid-token',
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testDocumentCreationIsNotExposedThroughApi(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = $container->get(EntityManagerInterface::class);
+
+        /** @var UserPasswordHasherInterface $passwordHasher */
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = new Organization();
+        $organization->setName(sprintf('Read Only Document Organization %s', $uniqueSuffix));
+        $entityManager->persist($organization);
+
+        $user = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $organization,
+            sprintf('readonly-document-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $entityManager->flush();
+
+        $token = $this->getJwtToken($client, $user->getUserIdentifier());
+
+        $client->request(
+            'POST',
+            '/api/documents',
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $token),
+            ],
+            content: json_encode([
+                'title' => 'Client-created document',
+                'status' => 'published',
+                'organization' => '/api/organizations/1',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_METHOD_NOT_ALLOWED);
+    }
+
+    public function testCampaignCreationIsNotExposedThroughApi(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = $container->get(EntityManagerInterface::class);
+
+        /** @var UserPasswordHasherInterface $passwordHasher */
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = new Organization();
+        $organization->setName(sprintf('Read Only Campaign Organization %s', $uniqueSuffix));
+        $entityManager->persist($organization);
+
+        $user = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $organization,
+            sprintf('readonly-campaign-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $entityManager->flush();
+
+        $token = $this->getJwtToken($client, $user->getUserIdentifier());
+
+        $client->request(
+            'POST',
+            '/api/campaigns',
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $token),
+            ],
+            content: json_encode([
+                'name' => 'Client-created campaign',
+                'status' => 'scheduled',
+                'organization' => '/api/organizations/1',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_METHOD_NOT_ALLOWED);
+    }
+
 }
