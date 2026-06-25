@@ -1,0 +1,24 @@
+{
+  "name": "secureflow",
+  "version": "1.0.0",
+  "description": "SecureFlow est un projet fil rouge de pr\u00e9paration technique autour d'une application SaaS de gestion de documents s\u00e9curis\u00e9s, campagnes de diffusion, droits d'acc\u00e8s, logs, analytics et traitements automatis\u00e9s.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "vite": "^8.1.0"
+  },
+  "type": "module"
+}

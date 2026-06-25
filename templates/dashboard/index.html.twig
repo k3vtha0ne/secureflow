@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SecureFlow Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% if app.environment == 'dev' %}
+        <script type="module" src="http://127.0.0.1:5173/build/@vite/client"></script>
+        <script type="module" src="http://127.0.0.1:5173/build/main.jsx"></script>
+    {% else %}
+        {% for css_file in vite_assets.css %}
+            <link rel="stylesheet" href="{{ css_file }}">
+        {% endfor %}
+
+        {% for js_file in vite_assets.js %}
+            <script type="module" src="{{ js_file }}"></script>
+        {% endfor %}
+    {% endif %}
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
