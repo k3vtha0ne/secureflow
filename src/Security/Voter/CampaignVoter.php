@@ -6,6 +6,7 @@ namespace App\Security\Voter;
 
 use App\Entity\Campaign;
 use App\Entity\User;
+use App\Service\CampaignAccessService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -20,6 +21,11 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 final class CampaignVoter extends Voter
 {
     public const VIEW = 'CAMPAIGN_VIEW';
+
+    public function __construct(
+        private readonly CampaignAccessService $campaignAccessService,
+    ) {
+    }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -42,17 +48,9 @@ final class CampaignVoter extends Voter
         }
 
         return match ($attribute) {
-            self::VIEW => $this->canView($subject, $user),
+            self::VIEW => $this->campaignAccessService->canView($subject, $user),
             default => false,
         };
     }
 
-    private function canView(Campaign $campaign, User $user): bool
-    {
-        if (null === $user->getOrganization()) {
-            return false;
-        }
-
-        return $campaign->getOrganization()?->getId() === $user->getOrganization()->getId();
-    }
 }
