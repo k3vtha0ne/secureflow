@@ -26,3 +26,6 @@
 ### Frontend ###
 /node_modules/
 /public/build/
+
+###> phpstan/phpstan ###
+###< phpstan/phpstan ###

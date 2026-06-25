@@ -76,6 +76,12 @@ jobs:
       - name: Validate Doctrine schema
         run: php bin/console doctrine:schema:validate --env=test --skip-sync
 
+      - name: Run PHPStan
+        run: |
+          mkdir -p var/cache/dev
+          php bin/console debug:container --env=dev --format=xml > var/cache/dev/phpstan-container.xml
+          vendor/bin/phpstan analyse --memory-limit=1G
+
       - name: Run PHPUnit tests
         run: php bin/phpunit
 
