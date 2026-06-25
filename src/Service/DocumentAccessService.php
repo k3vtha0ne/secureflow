@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\Document;
 use App\Entity\User;
+use App\Exception\Domain\DocumentAccessDeniedException;
 
 /**
  * Centralizes business access rules for Document entities.
@@ -33,5 +34,12 @@ final class DocumentAccessService
         }
 
         return $documentOrganization->getId() === $userOrganization->getId();
+    }
+
+    public function denyUnlessCanView(Document $document, User $user): void
+    {
+        if (!$this->canView($document, $user)) {
+            throw DocumentAccessDeniedException::forUser($document, $user);
+        }
     }
 }
