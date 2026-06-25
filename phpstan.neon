@@ -1,0 +1,31 @@
+includes:
+    - vendor/phpstan/phpstan-symfony/extension.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - src
+
+    symfony:
+        containerXmlPath: var/cache/dev/phpstan-container.xml
+
+    excludePaths:
+        - src/Kernel.php
+
+    ignoreErrors:
+        -
+            identifier: property.unusedType
+            path: src/Entity/AccessLog.php
+        -
+            identifier: property.unusedType
+            path: src/Entity/Campaign.php
+        -
+            identifier: property.unusedType
+            path: src/Entity/Document.php
+        -
+            identifier: property.unusedType
+            path: src/Entity/Organization.php
+        -
+            identifier: property.unusedType
+            path: src/Entity/User.php

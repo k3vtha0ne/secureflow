@@ -10,20 +10,24 @@ use App\Entity\User;
 final readonly class CreateCampaignCommand
 {
     /**
-     * @param list<Document> $documents
+     * @var list<Document>
      */
+    private array $documents;
+
     public function __construct(
         private User $createdBy,
         private string $name,
         private ?string $description = null,
         private ?\DateTimeImmutable $scheduledAt = null,
-        private array $documents = [],
+        array $documents = [],
     ) {
-        foreach ($this->documents as $document) {
+        foreach ($documents as $document) {
             if (!$document instanceof Document) {
                 throw new \InvalidArgumentException('Campaign documents must be Document instances.');
             }
         }
+
+        $this->documents = array_values($documents);
     }
 
     public function getCreatedBy(): User

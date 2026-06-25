@@ -83,4 +83,10 @@ front-dev:
 front-build:
 	npm run build
 
-qa: validate test front-build
+qa: validate test front-build phpstan
+
+.PHONY: phpstan
+phpstan:
+	mkdir -p var/cache/dev
+	php bin/console debug:container --env=dev --format=xml > var/cache/dev/phpstan-container.xml
+	vendor/bin/phpstan analyse --memory-limit=1G
