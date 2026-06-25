@@ -33,7 +33,7 @@ jobs:
     env:
       APP_ENV: test
       APP_SECRET: ci-test-secret
-      DATABASE_URL: mysql://secureflow:secureflow@127.0.0.1:3306/secureflow_test?serverVersion=mariadb-11.4.12&charset=utf8mb4
+      DATABASE_URL: mysql://secureflow:secureflow@127.0.0.1:3306/secureflow?serverVersion=mariadb-11.4.12&charset=utf8mb4
 
     steps:
       - name: Checkout repository
