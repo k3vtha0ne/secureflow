@@ -101,4 +101,52 @@ final class CampaignSchedulingServiceTest extends TestCase
 
         $this->service->denyUnlessCanRun($campaign, $now);
     }
+
+    public function testScheduledCampaignCanRunExactlyAtScheduledDate(): void
+    {
+        $now = new \DateTimeImmutable('2026-01-01 12:00:00');
+
+        $campaign = new Campaign();
+        $campaign->setStatus(Campaign::STATUS_SCHEDULED);
+        $campaign->setScheduledAt(new \DateTimeImmutable('2026-01-01 12:00:00'));
+
+        self::assertTrue($this->service->canRun($campaign, $now));
+    }
+
+    public function testRunningCampaignCannotRunAgain(): void
+    {
+        $campaign = new Campaign();
+        $campaign->setStatus(Campaign::STATUS_RUNNING);
+        $campaign->setScheduledAt(new \DateTimeImmutable('-1 day'));
+
+        self::assertFalse($this->service->canRun($campaign, new \DateTimeImmutable()));
+    }
+
+    public function testCompletedCampaignCannotRunAgain(): void
+    {
+        $campaign = new Campaign();
+        $campaign->setStatus(Campaign::STATUS_COMPLETED);
+        $campaign->setScheduledAt(new \DateTimeImmutable('-1 day'));
+
+        self::assertFalse($this->service->canRun($campaign, new \DateTimeImmutable()));
+    }
+
+    public function testCancelledCampaignCannotRun(): void
+    {
+        $campaign = new Campaign();
+        $campaign->setStatus(Campaign::STATUS_CANCELLED);
+        $campaign->setScheduledAt(new \DateTimeImmutable('-1 day'));
+
+        self::assertFalse($this->service->canRun($campaign, new \DateTimeImmutable()));
+    }
+
+    public function testNonDraftCampaignCannotBeScheduledEvenWithScheduledDate(): void
+    {
+        $campaign = new Campaign();
+        $campaign->setStatus(Campaign::STATUS_COMPLETED);
+        $campaign->setScheduledAt(new \DateTimeImmutable('+1 day'));
+
+        self::assertFalse($this->service->canBeScheduled($campaign));
+    }
+
 }

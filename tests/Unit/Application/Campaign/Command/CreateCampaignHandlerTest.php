@@ -155,4 +155,49 @@ final class CreateCampaignHandlerTest extends TestCase
             name: 'Invalid campaign',
         ));
     }
+
+    public function testItTrimsCampaignName(): void
+    {
+        $organization = new Organization();
+
+        $user = new User();
+        $user->setOrganization($organization);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager
+            ->expects($this->once())
+            ->method('persist')
+            ->with($this->isInstanceOf(Campaign::class));
+
+        $entityManager
+            ->expects($this->once())
+            ->method('flush');
+
+        $handler = new CreateCampaignHandler(
+            $entityManager,
+            new DocumentAccessService(),
+            new CampaignSchedulingService(),
+        );
+
+        $campaign = $handler(new CreateCampaignCommand(
+            createdBy: $user,
+            name: '  Product launch  ',
+        ));
+
+        self::assertSame('Product launch', $campaign->getName());
+    }
+
+    public function testCommandRejectsInvalidDocumentList(): void
+    {
+        $user = new User();
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        new CreateCampaignCommand(
+            createdBy: $user,
+            name: 'Invalid campaign',
+            documents: ['not a document'],
+        );
+    }
+
 }

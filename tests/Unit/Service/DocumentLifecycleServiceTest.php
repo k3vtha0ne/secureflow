@@ -132,4 +132,32 @@ final class DocumentLifecycleServiceTest extends TestCase
 
         $this->service->denyUnlessCanArchive($document);
     }
+
+    public function testArchivedDocumentCannotBePublished(): void
+    {
+        $document = new Document();
+        $document->setStatus(Document::STATUS_ARCHIVED);
+        $document->setIsDeleted(false);
+
+        self::assertFalse($this->service->canPublish($document));
+    }
+
+    public function testDeletedArchivedDocumentCannotBePublished(): void
+    {
+        $document = new Document();
+        $document->setStatus(Document::STATUS_ARCHIVED);
+        $document->setIsDeleted(true);
+
+        self::assertFalse($this->service->canPublish($document));
+    }
+
+    public function testArchivedDocumentCannotBeArchivedAgain(): void
+    {
+        $document = new Document();
+        $document->setStatus(Document::STATUS_ARCHIVED);
+        $document->setIsDeleted(false);
+
+        self::assertFalse($this->service->canArchive($document));
+    }
+
 }
