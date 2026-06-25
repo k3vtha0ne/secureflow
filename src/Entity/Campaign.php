@@ -33,7 +33,9 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ApiResource(
     operations: [
-        new Get(),
+        new Get(
+            security: "is_granted('CAMPAIGN_VIEW', object)" // VOTER
+        ),
         new GetCollection(
             parameters: [
                 // Allows partial text search on non-sensitive campaign fields.
