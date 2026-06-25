@@ -18,11 +18,10 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: CampaignRepository::class)]
-#[ORM\Table(indexes: [
-    new ORM\Index(name: 'idx_campaign_organization_created', columns: ['organization_id', 'created_at']),
-    new ORM\Index(name: 'idx_campaign_created_by_created', columns: ['created_by_id', 'created_at']),
-    new ORM\Index(name: 'idx_campaign_status_scheduled', columns: ['status', 'scheduled_at']),
-])]
+#[ORM\Table(name: 'campaign')]
+#[ORM\Index(name: 'idx_campaign_organization_created', columns: ['organization_id', 'created_at'])]
+#[ORM\Index(name: 'idx_campaign_created_by_created', columns: ['created_by_id', 'created_at'])]
+#[ORM\Index(name: 'idx_campaign_status_scheduled', columns: ['status', 'scheduled_at'])]
 /**
  * API read model for document distribution campaigns.
  *

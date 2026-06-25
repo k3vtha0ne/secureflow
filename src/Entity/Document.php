@@ -18,11 +18,10 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: DocumentRepository::class)]
-#[ORM\Table(indexes: [
-    new ORM\Index(name: 'idx_document_organization_deleted_created', columns: ['organization_id', 'is_deleted', 'created_at']),
-    new ORM\Index(name: 'idx_document_owner_deleted_created', columns: ['owner_id', 'is_deleted', 'created_at']),
-    new ORM\Index(name: 'idx_document_status', columns: ['status']),
-])]
+#[ORM\Table(name: 'document')]
+#[ORM\Index(name: 'idx_document_organization_deleted_created', columns: ['organization_id', 'is_deleted', 'created_at'])]
+#[ORM\Index(name: 'idx_document_owner_deleted_created', columns: ['owner_id', 'is_deleted', 'created_at'])]
+#[ORM\Index(name: 'idx_document_status', columns: ['status'])]
 /**
  * API read model for secured documents.
  *
