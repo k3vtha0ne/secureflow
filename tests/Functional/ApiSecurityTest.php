@@ -316,6 +316,220 @@ final class ApiSecurityTest extends WebTestCase
         self::assertNotContains($betaCampaign->getName(), $names);
     }
     
+    public function testDocumentItemAccessIsScopedByUserOrganization(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = $container->get(EntityManagerInterface::class);
+
+        /** @var UserPasswordHasherInterface $passwordHasher */
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $alphaOrganization = new Organization();
+        $alphaOrganization->setName(sprintf('Alpha Item Organization %s', $uniqueSuffix));
+
+        $betaOrganization = new Organization();
+        $betaOrganization->setName(sprintf('Beta Item Organization %s', $uniqueSuffix));
+
+        $entityManager->persist($alphaOrganization);
+        $entityManager->persist($betaOrganization);
+
+        $alphaUser = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $alphaOrganization,
+            sprintf('alpha-document-item-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $betaUser = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $betaOrganization,
+            sprintf('beta-document-item-%s@example.test', $uniqueSuffix),
+            ['ROLE_USER']
+        );
+
+        $now = new \DateTimeImmutable();
+
+        $alphaDocument = new Document();
+        $alphaDocument->setTitle(sprintf('Alpha Item Document %s', $uniqueSuffix));
+        $alphaDocument->setDescription('Alpha organization document.');
+        $alphaDocument->setStatus('published');
+        $alphaDocument->setStoragePath(sprintf('/documents/alpha-item-%s.pdf', $uniqueSuffix));
+        $alphaDocument->setOwner($alphaUser);
+        $alphaDocument->setOrganization($alphaOrganization);
+        $alphaDocument->setIsDeleted(false);
+        $alphaDocument->setCreatedAt($now);
+
+        $betaDocument = new Document();
+        $betaDocument->setTitle(sprintf('Beta Item Document %s', $uniqueSuffix));
+        $betaDocument->setDescription('Beta organization document.');
+        $betaDocument->setStatus('published');
+        $betaDocument->setStoragePath(sprintf('/documents/beta-item-%s.pdf', $uniqueSuffix));
+        $betaDocument->setOwner($betaUser);
+        $betaDocument->setOrganization($betaOrganization);
+        $betaDocument->setIsDeleted(false);
+        $betaDocument->setCreatedAt($now);
+
+        $entityManager->persist($alphaDocument);
+        $entityManager->persist($betaDocument);
+        $entityManager->flush();
+
+        $alphaToken = $this->getJwtToken($client, $alphaUser->getUserIdentifier());
+        $betaToken = $this->getJwtToken($client, $betaUser->getUserIdentifier());
+
+        $client->request(
+            'GET',
+            sprintf('/api/documents/%d', $alphaDocument->getId()),
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $alphaToken),
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $client->request(
+            'GET',
+            sprintf('/api/documents/%d', $betaDocument->getId()),
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $betaToken),
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $client->request(
+            'GET',
+            sprintf('/api/documents/%d', $betaDocument->getId()),
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $alphaToken),
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+
+        $client->request(
+            'GET',
+            sprintf('/api/documents/%d', $alphaDocument->getId()),
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $betaToken),
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testCampaignItemAccessIsScopedByUserOrganization(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = $container->get(EntityManagerInterface::class);
+
+        /** @var UserPasswordHasherInterface $passwordHasher */
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $alphaOrganization = new Organization();
+        $alphaOrganization->setName(sprintf('Alpha Campaign Item Organization %s', $uniqueSuffix));
+
+        $betaOrganization = new Organization();
+        $betaOrganization->setName(sprintf('Beta Campaign Item Organization %s', $uniqueSuffix));
+
+        $entityManager->persist($alphaOrganization);
+        $entityManager->persist($betaOrganization);
+
+        $alphaUser = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $alphaOrganization,
+            sprintf('alpha-campaign-item-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $betaUser = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $betaOrganization,
+            sprintf('beta-campaign-item-%s@example.test', $uniqueSuffix),
+            ['ROLE_USER']
+        );
+
+        $now = new \DateTimeImmutable();
+
+        $alphaCampaign = new Campaign();
+        $alphaCampaign->setName(sprintf('Alpha Item Campaign %s', $uniqueSuffix));
+        $alphaCampaign->setDescription('Alpha organization campaign.');
+        $alphaCampaign->setStatus('scheduled');
+        $alphaCampaign->setScheduledAt($now->modify('+1 day'));
+        $alphaCampaign->setOrganization($alphaOrganization);
+        $alphaCampaign->setCreatedBy($alphaUser);
+        $alphaCampaign->setCreatedAt($now);
+
+        $betaCampaign = new Campaign();
+        $betaCampaign->setName(sprintf('Beta Item Campaign %s', $uniqueSuffix));
+        $betaCampaign->setDescription('Beta organization campaign.');
+        $betaCampaign->setStatus('scheduled');
+        $betaCampaign->setScheduledAt($now->modify('+2 days'));
+        $betaCampaign->setOrganization($betaOrganization);
+        $betaCampaign->setCreatedBy($betaUser);
+        $betaCampaign->setCreatedAt($now);
+
+        $entityManager->persist($alphaCampaign);
+        $entityManager->persist($betaCampaign);
+        $entityManager->flush();
+
+        $alphaToken = $this->getJwtToken($client, $alphaUser->getUserIdentifier());
+        $betaToken = $this->getJwtToken($client, $betaUser->getUserIdentifier());
+
+        $client->request(
+            'GET',
+            sprintf('/api/campaigns/%d', $alphaCampaign->getId()),
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $alphaToken),
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $client->request(
+            'GET',
+            sprintf('/api/campaigns/%d', $betaCampaign->getId()),
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $betaToken),
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $client->request(
+            'GET',
+            sprintf('/api/campaigns/%d', $betaCampaign->getId()),
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $alphaToken),
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+
+        $client->request(
+            'GET',
+            sprintf('/api/campaigns/%d', $alphaCampaign->getId()),
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $betaToken),
+            ]
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
     
 
 }
