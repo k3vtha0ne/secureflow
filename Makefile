@@ -1,35 +1,86 @@
-# Makefile Docker Compose : fichier de raccourcis de commandes (fait appel au fichier docker-compose.yml)
 COMPOSE=docker compose -f docker-compose.yml
 APP_PORT=8001
 
-.PHONY: ps start stop restart logs serve validate fixtures report db-status
+.PHONY: help install start stop restart ps logs serve dev db-create db-drop migrate fixtures db-reset validate test front-dev front-build qa
 
-ps:
-	$(COMPOSE) ps
+help:
+	@echo "SecureFlow developer commands"
+	@echo ""
+	@echo "Setup:"
+	@echo "  make install       Install PHP and JS dependencies"
+	@echo "  make start         Start Docker services"
+	@echo "  make db-create     Create database if needed"
+	@echo "  make migrate       Run Doctrine migrations"
+	@echo "  make fixtures      Load development fixtures"
+	@echo "  make db-reset      Drop, recreate, migrate and load fixtures"
+	@echo ""
+	@echo "Development:"
+	@echo "  make serve         Start Symfony local server on port $(APP_PORT)"
+	@echo "  make front-dev     Start Vite dev server"
+	@echo "  make dev           Start Docker services and Symfony server"
+	@echo ""
+	@echo "Quality:"
+	@echo "  make validate      Validate Doctrine schema and Symfony container"
+	@echo "  make test          Run PHPUnit"
+	@echo "  make front-build   Build React/Vite assets"
+	@echo "  make qa            Run backend tests and frontend build"
+	@echo ""
+	@echo "Docker:"
+	@echo "  make ps            Show Docker services"
+	@echo "  make logs          Follow Docker logs"
+	@echo "  make stop          Stop Docker services"
+	@echo "  make restart       Restart Docker services"
+
+install:
+	composer install
+	npm install
 
 start:
 	$(COMPOSE) up -d
-
-serve:
-	symfony serve -d --port=$(APP_PORT)
 
 stop:
 	$(COMPOSE) down
 
 restart: stop start
 
+ps:
+	$(COMPOSE) ps
+
 logs:
 	$(COMPOSE) logs -f
+
+serve:
+	symfony serve -d --port=$(APP_PORT)
+
+dev: start serve
+	@echo "Backend is available on http://127.0.0.1:$(APP_PORT)"
+	@echo "Run 'make front-dev' in another terminal for the React dashboard."
+
+db-create:
+	php bin/console doctrine:database:create --if-not-exists
+
+db-drop:
+	php bin/console doctrine:database:drop --force --if-exists
+
+migrate:
+	php bin/console doctrine:migrations:migrate --no-interaction
+
+fixtures:
+	php bin/console doctrine:fixtures:load --no-interaction
+
+db-reset: db-drop db-create migrate fixtures
 
 validate:
 	php bin/console doctrine:schema:validate
 	php bin/console lint:container
 
-fixtures:
-	php bin/console doctrine:fixtures:load
+test:
+	php bin/phpunit
 
-report:
-	php bin/console app:report:domain-overview
+front-dev:
+	npm run dev
 
-db-status:
-	php bin/console doctrine:migrations:status
+front-build:
+	npm run build
+
+qa: validate test front-build
