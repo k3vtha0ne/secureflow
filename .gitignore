@@ -29,3 +29,9 @@
 
 ###> phpstan/phpstan ###
 ###< phpstan/phpstan ###
+
+# macOS
+.DS_Store
+
+# PHPStan local override
+phpstan.neon
