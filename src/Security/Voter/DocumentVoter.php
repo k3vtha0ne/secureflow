@@ -6,6 +6,7 @@ namespace App\Security\Voter;
 
 use App\Entity\Document;
 use App\Entity\User;
+use App\Service\DocumentAccessService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -20,6 +21,11 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 final class DocumentVoter extends Voter
 {
     public const VIEW = 'DOCUMENT_VIEW';
+
+    public function __construct(
+        private readonly DocumentAccessService $documentAccessService,
+    ) {
+    }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -42,17 +48,9 @@ final class DocumentVoter extends Voter
         }
 
         return match ($attribute) {
-            self::VIEW => $this->canView($subject, $user),
+            self::VIEW => $this->documentAccessService->canView($subject, $user),
             default => false,
         };
     }
 
-    private function canView(Document $document, User $user): bool
-    {
-        if (null === $user->getOrganization()) {
-            return false;
-        }
-
-        return $document->getOrganization()?->getId() === $user->getOrganization()->getId();
-    }
 }
