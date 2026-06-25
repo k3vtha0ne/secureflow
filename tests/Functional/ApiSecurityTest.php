@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Entity\Document;
 use App\Entity\Organization;
 use App\Entity\User;
+use App\Entity\Campaign;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -227,6 +228,94 @@ final class ApiSecurityTest extends WebTestCase
         self::assertNotContains($betaDocument->getTitle(), $titles);
     }
 
+    public function testCampaignsCollectionIsScopedByUserOrganization(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = $container->get(EntityManagerInterface::class);
+
+        /** @var UserPasswordHasherInterface $passwordHasher */
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $alphaOrganization = new Organization();
+        $alphaOrganization->setName(sprintf('Alpha Campaign Organization %s', $uniqueSuffix));
+
+        $betaOrganization = new Organization();
+        $betaOrganization->setName(sprintf('Beta Campaign Organization %s', $uniqueSuffix));
+
+        $entityManager->persist($alphaOrganization);
+        $entityManager->persist($betaOrganization);
+
+        $alphaUser = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $alphaOrganization,
+            sprintf('alpha-campaign-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $betaUser = $this->createUser(
+            $entityManager,
+            $passwordHasher,
+            $betaOrganization,
+            sprintf('beta-campaign-%s@example.test', $uniqueSuffix),
+            ['ROLE_USER']
+        );
+
+        $now = new \DateTimeImmutable();
+
+        $alphaCampaign = new Campaign();
+        $alphaCampaign->setName(sprintf('Alpha Campaign %s', $uniqueSuffix));
+        $alphaCampaign->setDescription('Visible only by Alpha organization.');
+        $alphaCampaign->setStatus('scheduled');
+        $alphaCampaign->setScheduledAt($now->modify('+1 day'));
+        $alphaCampaign->setOrganization($alphaOrganization);
+        $alphaCampaign->setCreatedBy($alphaUser);
+        $alphaCampaign->setCreatedAt($now);
+
+        $betaCampaign = new Campaign();
+        $betaCampaign->setName(sprintf('Beta Campaign %s', $uniqueSuffix));
+        $betaCampaign->setDescription('Visible only by Beta organization.');
+        $betaCampaign->setStatus('scheduled');
+        $betaCampaign->setScheduledAt($now->modify('+2 days'));
+        $betaCampaign->setOrganization($betaOrganization);
+        $betaCampaign->setCreatedBy($betaUser);
+        $betaCampaign->setCreatedAt($now);
+
+        $entityManager->persist($alphaCampaign);
+        $entityManager->persist($betaCampaign);
+        $entityManager->flush();
+
+        $alphaToken = $this->getJwtToken($client, $alphaUser->getUserIdentifier());
+
+        $client->request(
+            'GET',
+            '/api/campaigns',
+            server: [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $alphaToken),
+            ]
+        );
+
+        self::assertResponseIsSuccessful();
+
+        $payload = json_decode(
+            $client->getResponse()->getContent(),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
+        $campaigns = $payload['member'] ?? $payload['hydra:member'] ?? [];
+        $names = array_column($campaigns, 'name');
+
+        self::assertContains($alphaCampaign->getName(), $names);
+        self::assertNotContains($betaCampaign->getName(), $names);
+    }
+    
     
 
 }
