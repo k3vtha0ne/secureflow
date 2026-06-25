@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\Campaign;
 use App\Entity\User;
+use App\Exception\Domain\CampaignAccessDeniedException;
 
 /**
  * Centralizes business access rules for Campaign entities.
@@ -33,5 +34,12 @@ final class CampaignAccessService
         }
 
         return $campaignOrganization->getId() === $userOrganization->getId();
+    }
+
+    public function denyUnlessCanView(Campaign $campaign, User $user): void
+    {
+        if (!$this->canView($campaign, $user)) {
+            throw CampaignAccessDeniedException::forUser($campaign, $user);
+        }
     }
 }
