@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - 'feature/**'
+      - 'chore/**'
+      - 'fix/**'
+  pull_request:
+
+jobs:
+  quality:
+    name: Quality checks
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: secureflow_test
+          MARIADB_USER: secureflow
+          MARIADB_PASSWORD: secureflow
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      APP_ENV: test
+      APP_SECRET: ci-test-secret
+      DATABASE_URL: mysql://secureflow:secureflow@127.0.0.1:3306/secureflow?serverVersion=mariadb-11.4.12&charset=utf8mb4
+      JWT_SECRET_KEY: '%kernel.project_dir%/config/jwt/private.pem'
+      JWT_PUBLIC_KEY: '%kernel.project_dir%/config/jwt/public.pem'
+      JWT_PASSPHRASE: ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: ctype, iconv, intl, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate Composer configuration
+        run: composer validate --strict --no-check-publish
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Generate JWT key pair for tests
+        run: |
+          mkdir -p config/jwt
+          openssl genrsa -out config/jwt/private.pem 4096
+          openssl rsa -in config/jwt/private.pem -pubout -out config/jwt/public.pem
+          chmod 600 config/jwt/private.pem
+          chmod 644 config/jwt/public.pem
+
+      - name: Prepare test database
+        run: |
+          php bin/console doctrine:database:create --env=test --if-not-exists
+          php bin/console doctrine:migrations:migrate --env=test --no-interaction
+
+      - name: Validate Symfony container
+        run: php bin/console lint:container --env=test
+
+      - name: Validate Doctrine schema
+        run: php bin/console doctrine:schema:validate --env=test --skip-sync
+
+      - name: Run PHPUnit tests
+        run: php bin/phpunit
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build frontend assets
+        run: npm run build
