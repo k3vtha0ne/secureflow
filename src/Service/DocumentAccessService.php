@@ -17,10 +17,21 @@ final class DocumentAccessService
 {
     public function canView(Document $document, User $user): bool
     {
-        if (null === $user->getOrganization()) {
+        $userOrganization = $user->getOrganization();
+        $documentOrganization = $document->getOrganization();
+
+        if (null === $userOrganization || null === $documentOrganization) {
             return false;
         }
 
-        return $document->getOrganization()?->getId() === $user->getOrganization()->getId();
+        if ($userOrganization === $documentOrganization) {
+            return true;
+        }
+
+        if (null === $userOrganization->getId() || null === $documentOrganization->getId()) {
+            return false;
+        }
+
+        return $documentOrganization->getId() === $userOrganization->getId();
     }
 }

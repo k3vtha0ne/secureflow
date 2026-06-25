@@ -17,10 +17,21 @@ final class CampaignAccessService
 {
     public function canView(Campaign $campaign, User $user): bool
     {
-        if (null === $user->getOrganization()) {
+        $userOrganization = $user->getOrganization();
+        $campaignOrganization = $campaign->getOrganization();
+
+        if (null === $userOrganization || null === $campaignOrganization) {
             return false;
         }
 
-        return $campaign->getOrganization()?->getId() === $user->getOrganization()->getId();
+        if ($userOrganization === $campaignOrganization) {
+            return true;
+        }
+
+        if (null === $userOrganization->getId() || null === $campaignOrganization->getId()) {
+            return false;
+        }
+
+        return $campaignOrganization->getId() === $userOrganization->getId();
     }
 }
