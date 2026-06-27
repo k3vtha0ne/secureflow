@@ -2,10 +2,13 @@
 
 namespace App\Entity;
 
+use App\Controller\Api\ArchiveDocumentController;
+use App\Controller\Api\PublishDocumentController;
 use App\Repository\DocumentRepository;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\Doctrine\Orm\Filter\ExactFilter;
 use ApiPlatform\Doctrine\Orm\Filter\PartialSearchFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SortFilter;
@@ -25,8 +28,10 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * API read model for secured documents.
  *
- * Write operations are intentionally not exposed yet: document creation must
- * assign the owner and organization server-side to avoid trusting client input.
+ * Generic write operations are intentionally not exposed yet: document creation
+ * must assign the owner and organization server-side to avoid trusting client input.
+ *
+ * Lifecycle write operations are exposed as dedicated business actions.
  *
  * Access control is enforced through JWT authentication, organization scoping and voters.
  */
@@ -34,6 +39,26 @@ use Doctrine\ORM\Mapping as ORM;
     operations: [
         new Get(
             security: "is_granted('DOCUMENT_VIEW', object)" // VOTER
+        ),
+        new Post(
+            uriTemplate: '/documents/{id}/publish',
+            controller: PublishDocumentController::class,
+            security: "is_granted('DOCUMENT_VIEW', object)",
+            read: true,
+            deserialize: false,
+            validate: false,
+            status: 200,
+            name: 'document_publish'
+        ),
+        new Post(
+            uriTemplate: '/documents/{id}/archive',
+            controller: ArchiveDocumentController::class,
+            security: "is_granted('DOCUMENT_VIEW', object)",
+            read: true,
+            deserialize: false,
+            validate: false,
+            status: 200,
+            name: 'document_archive'
         ),
         new GetCollection(
             parameters: [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\Document;
 use Symfony\Component\HttpFoundation\Response;
 
 final class DocumentApiTest extends ApiTestCase
@@ -165,4 +166,174 @@ final class DocumentApiTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_METHOD_NOT_ALLOWED);
     }
+
+    public function testDraftDocumentCanBePublishedThroughBusinessAction(): void
+    {
+        $client = static::createClient();
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = $this->createOrganization(sprintf('Publish Document Organization %s', $uniqueSuffix));
+
+        $user = $this->createUser(
+            $organization,
+            sprintf('publish-document-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $document = $this->createDocument(
+            $organization,
+            $user,
+            sprintf('Draft Document %s', $uniqueSuffix)
+        );
+        $document->setStatus(Document::STATUS_DRAFT);
+
+        $this->flush();
+
+        $token = $this->getJwtToken($client, $user->getUserIdentifier());
+
+        $client->request(
+            'POST',
+            sprintf('/api/documents/%d/publish', $document->getId()),
+            server: $this->bearerHeaders($token)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $payload = $this->decodeJsonResponse($client);
+
+        self::assertSame(Document::STATUS_PUBLISHED, $payload['status']);
+
+        $this->entityManager()->clear();
+
+        $storedDocument = $this->entityManager()
+            ->getRepository(Document::class)
+            ->find($document->getId());
+
+        self::assertInstanceOf(Document::class, $storedDocument);
+        self::assertSame(Document::STATUS_PUBLISHED, $storedDocument->getStatus());
+        self::assertInstanceOf(\DateTimeImmutable::class, $storedDocument->getUpdatedAt());
+    }
+
+    public function testPublishedDocumentCanBeArchivedThroughBusinessAction(): void
+    {
+        $client = static::createClient();
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = $this->createOrganization(sprintf('Archive Document Organization %s', $uniqueSuffix));
+
+        $user = $this->createUser(
+            $organization,
+            sprintf('archive-document-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $document = $this->createDocument(
+            $organization,
+            $user,
+            sprintf('Published Document %s', $uniqueSuffix)
+        );
+
+        $this->flush();
+
+        $token = $this->getJwtToken($client, $user->getUserIdentifier());
+
+        $client->request(
+            'POST',
+            sprintf('/api/documents/%d/archive', $document->getId()),
+            server: $this->bearerHeaders($token)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $payload = $this->decodeJsonResponse($client);
+
+        self::assertSame(Document::STATUS_ARCHIVED, $payload['status']);
+
+        $this->entityManager()->clear();
+
+        $storedDocument = $this->entityManager()
+            ->getRepository(Document::class)
+            ->find($document->getId());
+
+        self::assertInstanceOf(Document::class, $storedDocument);
+        self::assertSame(Document::STATUS_ARCHIVED, $storedDocument->getStatus());
+        self::assertInstanceOf(\DateTimeImmutable::class, $storedDocument->getUpdatedAt());
+    }
+
+    public function testPublishedDocumentCannotBePublishedAgain(): void
+    {
+        $client = static::createClient();
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = $this->createOrganization(sprintf('Invalid Publish Organization %s', $uniqueSuffix));
+
+        $user = $this->createUser(
+            $organization,
+            sprintf('invalid-publish-document-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $document = $this->createDocument(
+            $organization,
+            $user,
+            sprintf('Already Published Document %s', $uniqueSuffix)
+        );
+
+        $this->flush();
+
+        $token = $this->getJwtToken($client, $user->getUserIdentifier());
+
+        $client->request(
+            'POST',
+            sprintf('/api/documents/%d/publish', $document->getId()),
+            server: $this->bearerHeaders($token)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+    }
+
+    public function testDocumentLifecycleActionIsScopedByUserOrganization(): void
+    {
+        $client = static::createClient();
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $alphaOrganization = $this->createOrganization(sprintf('Alpha Lifecycle Organization %s', $uniqueSuffix));
+        $betaOrganization = $this->createOrganization(sprintf('Beta Lifecycle Organization %s', $uniqueSuffix));
+
+        $alphaUser = $this->createUser(
+            $alphaOrganization,
+            sprintf('alpha-lifecycle-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $betaUser = $this->createUser(
+            $betaOrganization,
+            sprintf('beta-lifecycle-%s@example.test', $uniqueSuffix),
+            ['ROLE_USER']
+        );
+
+        $betaDocument = $this->createDocument(
+            $betaOrganization,
+            $betaUser,
+            sprintf('Beta Lifecycle Document %s', $uniqueSuffix)
+        );
+        $betaDocument->setStatus(Document::STATUS_DRAFT);
+
+        $this->flush();
+
+        $alphaToken = $this->getJwtToken($client, $alphaUser->getUserIdentifier());
+
+        $client->request(
+            'POST',
+            sprintf('/api/documents/%d/publish', $betaDocument->getId()),
+            server: $this->bearerHeaders($alphaToken)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
 }
