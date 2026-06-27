@@ -28,7 +28,7 @@ use Doctrine\ORM\Mapping as ORM;
  * Write operations are intentionally not exposed yet: document creation must
  * assign the owner and organization server-side to avoid trusting client input.
  *
- * Access control will be enforced once API authentication is configured.
+ * Access control is enforced through JWT authentication, organization scoping and voters.
  */
 #[ApiResource(
     operations: [

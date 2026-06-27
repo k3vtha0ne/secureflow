@@ -1,73 +1,48 @@
-## Initialisation du projet
-symfony new secureflow --webapp
-cd secureflow
+# SecureFlow project overview
 
-## Initialisation GIT
-git init
-git add .
-git commit -m "Initial Symfony project"
+SecureFlow is a technical portfolio project designed to demonstrate a production-oriented Symfony API with security, multi-tenant data isolation, business rules, automated tests and continuous integration.
 
-## Installation des dépendances
-composer require api
-composer require orm
-composer require maker --dev
-composer require profiler --dev
-composer require symfony/test-pack --dev
-composer require lexik/jwt-authentication-bundle
-composer require --dev orm-fixtures
-composer require lexik/jwt-authentication-bundle (+php bin/console lexik:jwt:generate-keypair)
+The project is intentionally focused on backend engineering quality rather than feature volume.
 
-## Créer le Docker Compose
-touch docker-compose.yml
-docker compose -f docker-compose.yml up -d <!-- Forcer Docker à utiliser le docker-compose.yml local -->
-docker compose -f docker-compose.yml ps
-docker compose -f docker-compose.yml down
+## Product context
 
-## Créer un Makefile (raccourcis de commandes Docker)
-touch Makefile
+SecureFlow simulates a SaaS document management platform where users belong to an organization.
 
-## Tester la connexion au ports (ex: 3307)
-nc -vz 127.0.0.1 3307
+Users can access secured document and campaign resources through a JWT-protected API. The API prevents users from reading resources owned by another organization.
 
-## Configurer .env.local
-touch .env.local
-git status --ignored | grep .env.local <!-- Vérifier que le fichier est ignoré par GIT -->
+A small React dashboard consumes the secured Symfony API to demonstrate a full request flow from frontend to backend.
 
-## Créer la base de données
-php bin/console doctrine:database:create --if-not-exists
-php bin/console doctrine:migrations:status
+## Technical focus
 
-# Si besoin de la recréer suite à une souci de migrations:
-php bin/console doctrine:database:drop --force --if-exists
-php bin/console doctrine:database:create
-php bin/console doctrine:migrations:migrate --no-interaction
+The project highlights:
 
-## Créer un controller de santé pour tester le endpoint
-php bin/console make:controller HealthController
-symfony serve -d --port=8001
-symfony server:list
-curl http://127.0.0.1:8001/api/health
+* Symfony and API Platform API development;
+* Doctrine ORM data modeling;
+* JWT authentication;
+* organization-based data isolation;
+* Symfony voters for object-level permissions;
+* business rules extracted into dedicated services;
+* lightweight Commands and Queries for application use cases;
+* PHPUnit unit and functional tests;
+* PHPStan static analysis;
+* GitHub Actions continuous integration;
+* Docker-based local MariaDB setup.
 
-## Commandes Symfony
+## Design approach
 
-## Check Symfony
-php bin/console lint:container vérifie que le container de services Symfony est cohérent.
+The codebase favors explicit and readable structures over unnecessary abstractions.
 
-Détecte des erreurs comme :
+Business rules are kept out of controllers and voters when they need to be reused or tested directly. API resources expose read operations, while write use cases are handled server-side to avoid trusting client-provided ownership or organization data.
 
-- service mal configuré
-- dépendance impossible à injecter
-- classe introuvable
-- argument de constructeur manquant
-- autowiring impossible
-- erreur dans la configuration services.yaml
+The goal is not to reproduce a full enterprise architecture, but to show clear boundaries, defensive security decisions and maintainable Symfony code.
 
-Combo: php bin/console doctrine:schema:validate && php bin/console lint:container
+## Documentation
 
-Si le lint:container passe mais qu'il reste des erreurs intelephense: CMD + Shift + P => Intelephense: Index workspace
+Further documentation is available in:
 
-## Faire une requête en ligne de commande:
-php bin/console dbal:run-sql "SELECT COUNT(*) AS total FROM organization"
-
-## Créer une commande
-php bin/console make:command DomainOverviewCommand
+* `docs/architecture.md`
+* `docs/security.md`
+* `docs/quality.md`
+* `docs/application-use-cases.md`
+* `docs/developer-environment.md`
+* `docs/docker.md`

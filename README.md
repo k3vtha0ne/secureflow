@@ -83,6 +83,7 @@ This runs:
 
 - Doctrine schema validation;
 - Symfony container lint;
+- PHPStan static analysis;
 - PHPUnit tests;
 - React/Vite production build.
 
@@ -122,6 +123,9 @@ docs/
 
 Key files:
 
+- docs/architecture.md
+- docs/security.md
+- docs/quality.md
 - docs/application-use-cases.md
 - docs/developer-environment.md
 - docs/docker.md
