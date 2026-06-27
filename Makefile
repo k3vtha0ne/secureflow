@@ -21,9 +21,10 @@ help:
 	@echo ""
 	@echo "Quality:"
 	@echo "  make validate      Validate Doctrine schema and Symfony container"
+	@echo "  make phpstan       Run PHPStan static analysis"
 	@echo "  make test          Run PHPUnit"
 	@echo "  make front-build   Build React/Vite assets"
-	@echo "  make qa            Run backend tests and frontend build"
+	@echo "  make qa            Run backend validation, static analysis, tests and frontend build"
 	@echo ""
 	@echo "Docker:"
 	@echo "  make ps            Show Docker services"
@@ -83,7 +84,7 @@ front-dev:
 front-build:
 	npm run build
 
-qa: validate test front-build phpstan
+qa: validate phpstan test front-build
 
 .PHONY: phpstan
 phpstan:
