@@ -7,26 +7,22 @@ namespace App\Controller\Api;
 use App\Entity\AccessLog;
 use App\Entity\Document;
 use App\Entity\User;
-use App\Exception\Domain\DocumentCannotBePublishedException;
 use App\Service\AuditTrailService;
 use App\Service\DocumentAccessService;
-use App\Service\DocumentLifecycleService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[AsController]
-final readonly class PublishDocumentController
+final readonly class ViewDocumentController
 {
     public function __construct(
         private Security $security,
         private DocumentAccessService $documentAccessService,
-        private DocumentLifecycleService $documentLifecycleService,
         private AuditTrailService $auditTrailService,
         private EntityManagerInterface $entityManager,
     ) {
@@ -44,19 +40,10 @@ final readonly class PublishDocumentController
             throw new NotFoundHttpException('Document not found.');
         }
 
-        try {
-            $this->documentLifecycleService->denyUnlessCanPublish($document);
-        } catch (DocumentCannotBePublishedException $exception) {
-            throw new ConflictHttpException($exception->getMessage(), $exception);
-        }
-
-        $document->setStatus(Document::STATUS_PUBLISHED);
-        $document->setUpdatedAt(new \DateTimeImmutable());
-
         $this->auditTrailService->recordDocumentAction(
             user: $user,
             document: $document,
-            action: AccessLog::ACTION_PUBLISH
+            action: AccessLog::ACTION_VIEW
         );
 
         $this->entityManager->flush();

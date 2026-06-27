@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Entity\AccessLog;
 use App\Entity\Document;
 use App\Entity\User;
 use App\Exception\Domain\DocumentCannotBeArchivedException;
+use App\Service\AuditTrailService;
 use App\Service\DocumentAccessService;
 use App\Service\DocumentLifecycleService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,6 +27,7 @@ final readonly class ArchiveDocumentController
         private Security $security,
         private DocumentAccessService $documentAccessService,
         private DocumentLifecycleService $documentLifecycleService,
+        private AuditTrailService $auditTrailService,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -49,6 +52,12 @@ final readonly class ArchiveDocumentController
 
         $document->setStatus(Document::STATUS_ARCHIVED);
         $document->setUpdatedAt(new \DateTimeImmutable());
+
+        $this->auditTrailService->recordDocumentAction(
+            user: $user,
+            document: $document,
+            action: AccessLog::ACTION_ARCHIVE
+        );
 
         $this->entityManager->flush();
 
