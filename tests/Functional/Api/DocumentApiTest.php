@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\AccessLog;
 use App\Entity\Document;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -334,6 +335,143 @@ final class DocumentApiTest extends ApiTestCase
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+
+    public function testDocumentItemViewCreatesAccessLog(): void
+    {
+        $client = static::createClient();
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = $this->createOrganization(sprintf('View Audit Organization %s', $uniqueSuffix));
+
+        $user = $this->createUser(
+            $organization,
+            sprintf('view-audit-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $document = $this->createDocument(
+            $organization,
+            $user,
+            sprintf('View Audit Document %s', $uniqueSuffix)
+        );
+
+        $this->flush();
+
+        $token = $this->getJwtToken($client, $user->getUserIdentifier());
+
+        $client->request(
+            'GET',
+            sprintf('/api/documents/%d', $document->getId()),
+            server: $this->bearerHeaders($token)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $accessLog = $this->entityManager()
+            ->getRepository(AccessLog::class)
+            ->findOneBy([
+                'user' => $user,
+                'document' => $document,
+                'organization' => $organization,
+                'action' => AccessLog::ACTION_VIEW,
+            ]);
+
+        self::assertInstanceOf(AccessLog::class, $accessLog);
+        self::assertInstanceOf(\DateTimeImmutable::class, $accessLog->getCreatedAt());
+    }
+
+    public function testPublishDocumentActionCreatesAccessLog(): void
+    {
+        $client = static::createClient();
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = $this->createOrganization(sprintf('Publish Audit Organization %s', $uniqueSuffix));
+
+        $user = $this->createUser(
+            $organization,
+            sprintf('publish-audit-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $document = $this->createDocument(
+            $organization,
+            $user,
+            sprintf('Publish Audit Document %s', $uniqueSuffix)
+        );
+        $document->setStatus(Document::STATUS_DRAFT);
+
+        $this->flush();
+
+        $token = $this->getJwtToken($client, $user->getUserIdentifier());
+
+        $client->request(
+            'POST',
+            sprintf('/api/documents/%d/publish', $document->getId()),
+            server: $this->bearerHeaders($token)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $accessLog = $this->entityManager()
+            ->getRepository(AccessLog::class)
+            ->findOneBy([
+                'user' => $user,
+                'document' => $document,
+                'organization' => $organization,
+                'action' => AccessLog::ACTION_PUBLISH,
+            ]);
+
+        self::assertInstanceOf(AccessLog::class, $accessLog);
+        self::assertInstanceOf(\DateTimeImmutable::class, $accessLog->getCreatedAt());
+    }
+
+    public function testArchiveDocumentActionCreatesAccessLog(): void
+    {
+        $client = static::createClient();
+
+        $uniqueSuffix = bin2hex(random_bytes(6));
+
+        $organization = $this->createOrganization(sprintf('Archive Audit Organization %s', $uniqueSuffix));
+
+        $user = $this->createUser(
+            $organization,
+            sprintf('archive-audit-%s@example.test', $uniqueSuffix),
+            ['ROLE_ADMIN']
+        );
+
+        $document = $this->createDocument(
+            $organization,
+            $user,
+            sprintf('Archive Audit Document %s', $uniqueSuffix)
+        );
+
+        $this->flush();
+
+        $token = $this->getJwtToken($client, $user->getUserIdentifier());
+
+        $client->request(
+            'POST',
+            sprintf('/api/documents/%d/archive', $document->getId()),
+            server: $this->bearerHeaders($token)
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $accessLog = $this->entityManager()
+            ->getRepository(AccessLog::class)
+            ->findOneBy([
+                'user' => $user,
+                'document' => $document,
+                'organization' => $organization,
+                'action' => AccessLog::ACTION_ARCHIVE,
+            ]);
+
+        self::assertInstanceOf(AccessLog::class, $accessLog);
+        self::assertInstanceOf(\DateTimeImmutable::class, $accessLog->getCreatedAt());
     }
 
 }

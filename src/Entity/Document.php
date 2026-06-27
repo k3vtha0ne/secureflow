@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Controller\Api\ArchiveDocumentController;
 use App\Controller\Api\PublishDocumentController;
+use App\Controller\Api\ViewDocumentController;
 use App\Repository\DocumentRepository;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
@@ -38,7 +39,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ApiResource(
     operations: [
         new Get(
-            security: "is_granted('DOCUMENT_VIEW', object)" // VOTER
+            controller: ViewDocumentController::class,
+            security: "is_granted('DOCUMENT_VIEW', object)",
+            read: true,
+            name: 'document_view'
         ),
         new Post(
             uriTemplate: '/documents/{id}/publish',

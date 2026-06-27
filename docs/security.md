@@ -93,3 +93,17 @@ Direct write operations are intentionally not exposed on `Document` and `Campaig
 This avoids trusting client-provided ownership or organization fields.
 
 Write use cases should assign sensitive fields server-side, using the authenticated user as the source of truth.
+
+## Audit trail
+
+SecureFlow records important document actions in an access log.
+
+Tracked actions include:
+
+- viewing a document;
+- publishing a document;
+- archiving a document.
+
+Each access log entry stores the user, document, organization, action, IP address, user agent and creation date.
+
+This provides a business-level audit trail: who did what, when, and on which document.
