@@ -23,15 +23,22 @@ class AccessLogRepository extends ServiceEntityRepository
      */
     public function findRecentByOrganization(
         Organization $organization,
-        int $limit = 50
+        int $limit = 50,
+        ?string $action = null,
     ): array {
-        return $this->createQueryBuilder('al')
+        $queryBuilder = $this->createQueryBuilder('al')
             ->andWhere('al.organization = :organization')
             ->setParameter('organization', $organization)
             ->orderBy('al.createdAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
+            ->setMaxResults($limit);
+
+        if (null !== $action && '' !== $action) {
+            $queryBuilder
+                ->andWhere('al.action = :action')
+                ->setParameter('action', $action);
+        }
+
+        return $queryBuilder->getQuery()->getResult();
     }
 
     /**
@@ -39,15 +46,22 @@ class AccessLogRepository extends ServiceEntityRepository
      */
     public function findRecentByDocument(
         Document $document,
-        int $limit = 50
+        int $limit = 50,
+        ?string $action = null,
     ): array {
-        return $this->createQueryBuilder('al')
+        $queryBuilder = $this->createQueryBuilder('al')
             ->andWhere('al.document = :document')
             ->setParameter('document', $document)
             ->orderBy('al.createdAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
+            ->setMaxResults($limit);
+
+        if (null !== $action && '' !== $action) {
+            $queryBuilder
+                ->andWhere('al.action = :action')
+                ->setParameter('action', $action);
+        }
+
+        return $queryBuilder->getQuery()->getResult();
     }
 
     /**

@@ -107,3 +107,12 @@ Tracked actions include:
 Each access log entry stores the user, document, organization, action, IP address, user agent and creation date.
 
 This provides a business-level audit trail: who did what, when, and on which document.
+
+Audit logs are exposed through read-only API endpoints for organization administrators and managers:
+
+- `GET /api/access-logs`;
+- `GET /api/documents/{id}/access-logs`.
+
+Responses are scoped from the authenticated user's organization. Simple `ROLE_USER` accounts cannot read the global audit log.
+
+Document audit access also preserves tenant isolation: a request for a document from another organization returns `404 Not Found`, so the API does not reveal whether the document exists.
