@@ -6,9 +6,9 @@ SecureFlow uses a lightweight application layer to keep business use cases expli
 
 The goal is not to introduce a heavy architecture, but to separate:
 
-- write use cases, represented by Commands;
-- read use cases, represented by Queries;
-- reusable business rules, kept in domain services.
+* write use cases, represented by Commands;
+* read use cases, represented by Queries;
+* reusable business rules, kept in domain services.
 
 ## Commands
 
@@ -16,10 +16,10 @@ Commands describe an intention that changes the state of the system.
 
 Example:
 
-- `CreateCampaignCommand`
-- `CreateCampaignHandler`
+* `CreateCampaignCommand`
+* `CreateCampaignHandler`
 
-The command carries the input data required to create a campaign.  
+The command carries the input data required to create a campaign.
 The handler orchestrates the use case:
 
 1. resolve the creator organization;
@@ -31,8 +31,8 @@ The handler orchestrates the use case:
 
 Business rules are not duplicated in the handler. They are delegated to dedicated services such as:
 
-- `DocumentAccessService`;
-- `CampaignSchedulingService`.
+* `DocumentAccessService`;
+* `CampaignSchedulingService`.
 
 ## Queries
 
@@ -40,14 +40,34 @@ Queries describe a read-only use case.
 
 Example:
 
-- `CampaignStatsQuery`
-- `CampaignStatsHandler`
-- `CampaignStats`
+* `CampaignStatsQuery`
+* `CampaignStatsHandler`
+* `CampaignStats`
 
-The query requests campaign statistics for an organization.  
+The query requests campaign statistics for an organization.
 The handler reads aggregated data from the repository and returns a dedicated read model.
 
 Queries must not persist or mutate entities.
+
+## Custom API business actions
+
+Some operations are exposed as dedicated business actions instead of generic field updates.
+
+Example:
+
+```text
+POST /api/documents/{id}/publish
+POST /api/documents/{id}/archive
+```
+
+These endpoints represent explicit business intentions:
+
+* publish this document;
+* archive this document.
+
+The client does not directly choose an arbitrary `status` value. The server checks the current user, validates document access, applies lifecycle rules and persists the allowed transition.
+
+This keeps write operations safer than exposing a generic update endpoint for sensitive fields.
 
 ## Why no command bus?
 
@@ -55,10 +75,10 @@ A command bus or asynchronous processing could be added later, but it would be u
 
 The current structure is intentionally simple:
 
-- explicit use case classes;
-- easy unit testing;
-- no hidden magic;
-- no premature complexity.
+* explicit use case classes;
+* easy unit testing;
+* no hidden magic;
+* no premature complexity.
 
 ## Interview explanation
 
