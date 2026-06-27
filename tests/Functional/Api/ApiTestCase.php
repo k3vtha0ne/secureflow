@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\AccessLog;
 use App\Entity\Campaign;
 use App\Entity\Document;
 use App\Entity\Organization;
@@ -100,6 +101,30 @@ abstract class ApiTestCase extends WebTestCase
         $this->entityManager()->persist($campaign);
 
         return $campaign;
+    }
+
+    protected function createAccessLog(
+        Organization $organization,
+        User $user,
+        Document $document,
+        string $action = AccessLog::ACTION_VIEW,
+        ?\DateTimeImmutable $createdAt = null,
+    ): AccessLog {
+        $accessLog = new AccessLog();
+        $accessLog->setOrganization($organization);
+        $accessLog->setUser($user);
+        $accessLog->setDocument($document);
+        $accessLog->setAction($action);
+        $accessLog->setIpAddress('127.0.0.1');
+        $accessLog->setUserAgent('SecureFlow functional test');
+
+        if ($createdAt instanceof \DateTimeImmutable) {
+            $accessLog->setCreatedAt($createdAt);
+        }
+
+        $this->entityManager()->persist($accessLog);
+
+        return $accessLog;
     }
 
     protected function flush(): void
